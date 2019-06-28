@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "General Configuration"
+        Parameters:
+          - ServiceName
+      -
+        Label:
+          default: "NetWork Configuration"
+        Parameters:
+          - VpcIp
+          - SubnetIp1
+          - SubnetIp2
+Parameters:
+  ServiceName:
+    Description: "input your ServiceName."
+    Type: String
+    Default: "Sample App"
+  VpcIp:
+    Description: "input your VPC IP Range."
+    Type: String
+    Default: 172.16.0.0/16
+  SubnetIp1:
+    Description: "input your Subnet_1 IP Range."
+    Type: String
+    Default: 172.16.0.0/24
+  SubnetIp2:
+    Description: "input your Subnet_2 IP Range."
+    Type: String
+    Default: 172.16.1.0/24
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcIp
+      EnableDnsSupport: 'false'
+      EnableDnsHostnames: 'false'
+      InstanceTenancy: dedicated
+      Tags:
+        - 
+          Key: "Name"
+          Value: !Join [" ", [ !Ref ServiceName, "vpc" ] ]
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - 
+          Key: "Name"
+          Value: !Join [" ", [ !Ref ServiceName, "igw" ] ]
+  AttackInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: 
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: # get 1st Az
+        !Select [0, !GetAZs '' ]
+      CidrBlock: !Ref SubnetIp1
+      VpcId: !Ref VPC
+      Tags:
+        - 
+          Key: "Name"
+          Value: !Join [" ", [ !Ref ServiceName, "Subnet", "1" ] ]
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: # get 2nd Az
+        !Select [1, !GetAZs '' ]
+      CidrBlock: !Ref SubnetIp2
+      VpcId: !Ref VPC
+      Tags:
+        - 
+          Key: "Name"
+          Value: !Join [" ", [ !Ref ServiceName, "Subnet", "2" ] ]
