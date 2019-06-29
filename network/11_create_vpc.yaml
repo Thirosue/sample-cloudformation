@@ -77,3 +77,28 @@ Resources:
         - 
           Key: "Name"
           Value: !Join [" ", [ !Ref ServiceName, "Subnet", "2" ] ]
+  InternetGatewayRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttackInternetGateway
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties: 
+      VpcId: !Ref VPC
+      Tags:
+        - 
+          Key: "Name"
+          Value: !Join [" ", [ !Ref ServiceName, "RouteTable" ] ]
+  AttachSubnet1ToRouteTable: # RouteTable attach Subnet1
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref RouteTable
+      SubnetId: !Ref PublicSubnet1
+  AttachSubnet2ToRouteTable: # RouteTable attach Subnet2 
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref RouteTable
+      SubnetId: !Ref PublicSubnet2
