@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "General Configuration"
+        Parameters:
+          - ServiceName
+Parameters:
+  ServiceName:
+    Description: "input your ServiceName."
+    Type: String
+    Default: "sample-app"
+Resources:
+  LBLogBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join ["-", [ !Ref ServiceName, "accesslog" ] ]
+      AccessControl: LogDeliveryWrite
+      LifecycleConfiguration:
+        Rules:
+        - Id: GlacierRule
+          Prefix: glacier
+          Status: Enabled
+          ExpirationInDays: '365'
+          Transitions:
+            - TransitionInDays: '30'
+              StorageClass: Glacier
+      Tags:
+        - 
+          Key: "Name"
+          Value: !Join [" ", [ !Ref ServiceName, "ALB Log Bucket" ] ]

@@ -1,5 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Resources:
+# ------------------------------------------------------------#
+#  ECS Task Role
+# ------------------------------------------------------------#         
   ECSTaskRole: 
     Type: "AWS::IAM::Role"
     Properties: 
@@ -14,6 +17,7 @@ Resources:
             Action: 
               - "sts:AssumeRole"
       Path: "/system/"
+
   ECSTaskRolePolicies: 
     Type: "AWS::IAM::Policy"
     Properties: 
@@ -27,6 +31,10 @@ Resources:
             Resource: "*"
       Roles: 
         - !Ref ECSTaskRole
+
+# ------------------------------------------------------------#
+#  AutoScale Role
+# ------------------------------------------------------------#         
   AutoScalingRole: 
     Type: "AWS::IAM::Role"
     Properties: 
@@ -41,6 +49,7 @@ Resources:
             Action: 
               - "sts:AssumeRole"
       Path: "/system/"
+      
   AutoScalingPolicies: 
     Type: "AWS::IAM::Policy"
     Properties: 

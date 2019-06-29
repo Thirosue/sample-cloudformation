@@ -14,11 +14,12 @@ Metadata:
           - VpcIp
           - SubnetIp1
           - SubnetIp2
+
 Parameters:
   ServiceName:
     Description: "input your ServiceName."
     Type: String
-    Default: "Sample App"
+    Default: "sample-app"
   VpcIp:
     Description: "input your VPC IP Range."
     Type: String
@@ -31,7 +32,11 @@ Parameters:
     Description: "input your Subnet_2 IP Range."
     Type: String
     Default: 172.16.1.0/24
+
 Resources:
+# ------------------------------------------------------------#
+#  VPC
+# ------------------------------------------------------------#         
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -43,6 +48,10 @@ Resources:
         - 
           Key: "Name"
           Value: !Join [" ", [ !Ref ServiceName, "vpc" ] ]
+
+# ------------------------------------------------------------#
+#  InterNetGateWay
+# ------------------------------------------------------------#         
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -50,11 +59,16 @@ Resources:
         - 
           Key: "Name"
           Value: !Join [" ", [ !Ref ServiceName, "igw" ] ]
+
   AttackInternetGateway:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties: 
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
+
+# ------------------------------------------------------------#
+#  Subnet
+# ------------------------------------------------------------#         
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -66,6 +80,7 @@ Resources:
         - 
           Key: "Name"
           Value: !Join [" ", [ !Ref ServiceName, "Subnet", "1" ] ]
+
   PublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
@@ -77,6 +92,10 @@ Resources:
         - 
           Key: "Name"
           Value: !Join [" ", [ !Ref ServiceName, "Subnet", "2" ] ]
+
+# ------------------------------------------------------------#
+#  RouteTable
+# ------------------------------------------------------------#         
   InternetGatewayRoute:
     Type: AWS::EC2::Route
     DependsOn: AttackInternetGateway
@@ -84,6 +103,7 @@ Resources:
       RouteTableId: !Ref RouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
+
   RouteTable:
     Type: AWS::EC2::RouteTable
     Properties: 
@@ -92,16 +112,22 @@ Resources:
         - 
           Key: "Name"
           Value: !Join [" ", [ !Ref ServiceName, "RouteTable" ] ]
+
   AttachSubnet1ToRouteTable: # RouteTable attach Subnet1
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties: 
       RouteTableId: !Ref RouteTable
       SubnetId: !Ref PublicSubnet1
+
   AttachSubnet2ToRouteTable: # RouteTable attach Subnet2 
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties: 
       RouteTableId: !Ref RouteTable
       SubnetId: !Ref PublicSubnet2
+
+# ------------------------------------------------------------#
+#  FireWall
+# ------------------------------------------------------------#         
   PublicFireWall:
     Type: AWS::EC2::SecurityGroup
     DependsOn: VPC
@@ -126,6 +152,7 @@ Resources:
         - 
           Key: "Name"
           Value: !Join [" ", [ !Ref ServiceName, "Public FireWall" ] ]
+
   InternalFireWall:
     Type: AWS::EC2::SecurityGroup
     DependsOn: VPC
