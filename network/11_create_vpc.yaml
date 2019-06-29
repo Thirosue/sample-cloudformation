@@ -47,7 +47,7 @@ Resources:
       Tags:
         - 
           Key: "Name"
-          Value: !Join [" ", [ !Ref ServiceName, "vpc" ] ]
+          Value: !Sub "${ServiceName} vpc"
 
 # ------------------------------------------------------------#
 #  InterNetGateWay
@@ -58,7 +58,7 @@ Resources:
       Tags:
         - 
           Key: "Name"
-          Value: !Join [" ", [ !Ref ServiceName, "igw" ] ]
+          Value: !Sub "${ServiceName} igw"
 
   AttackInternetGateway:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -79,7 +79,7 @@ Resources:
       Tags:
         - 
           Key: "Name"
-          Value: !Join [" ", [ !Ref ServiceName, "Subnet", "1" ] ]
+          Value: !Sub "${ServiceName} Public Subnet 1"
 
   PublicSubnet2:
     Type: AWS::EC2::Subnet
@@ -91,7 +91,7 @@ Resources:
       Tags:
         - 
           Key: "Name"
-          Value: !Join [" ", [ !Ref ServiceName, "Subnet", "2" ] ]
+          Value: !Sub "${ServiceName} Public Subnet 2"
 
 # ------------------------------------------------------------#
 #  RouteTable
@@ -111,7 +111,7 @@ Resources:
       Tags:
         - 
           Key: "Name"
-          Value: !Join [" ", [ !Ref ServiceName, "RouteTable" ] ]
+          Value: !Sub "${ServiceName} RouteTable"
 
   AttachSubnet1ToRouteTable: # RouteTable attach Subnet1
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -151,7 +151,7 @@ Resources:
       Tags:
         - 
           Key: "Name"
-          Value: !Join [" ", [ !Ref ServiceName, "Public FireWall" ] ]
+          Value: !Sub "${ServiceName} Public FireWall"
 
   InternalFireWall:
     Type: AWS::EC2::SecurityGroup
@@ -172,4 +172,4 @@ Resources:
       Tags:
         - 
           Key: "Name"
-          Value: !Join [" ", [ !Ref ServiceName, "Internal FireWall" ] ]
+          Value: !Sub "${ServiceName} Internal FireWall"

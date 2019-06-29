@@ -13,10 +13,13 @@ Parameters:
     Type: String
     Default: "sample-app"
 Resources:
+# ------------------------------------------------------------#
+#  S3 (ALB Log Bucket)
+# ------------------------------------------------------------#         
   LBLogBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Join ["-", [ !Ref ServiceName, "accesslog" ] ]
+      BucketName: !Sub "${ServiceName}-accesslog"
       AccessControl: LogDeliveryWrite
       LifecycleConfiguration:
         Rules:
@@ -27,7 +30,3 @@ Resources:
           Transitions:
             - TransitionInDays: '30'
               StorageClass: Glacier
-      Tags:
-        - 
-          Key: "Name"
-          Value: !Join [" ", [ !Ref ServiceName, "ALB Log Bucket" ] ]
