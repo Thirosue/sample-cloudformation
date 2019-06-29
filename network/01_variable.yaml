@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "General Configuration"
+        Parameters:
+          - ServiceName
+      -
+        Label:
+          default: "NetWork Configuration"
+        Parameters:
+          - VpcIp
+          - SubnetIp1
+          - SubnetIp2
+Parameters:
+  ServiceName:
+    Description: "input your ServiceName."
+    Type: String
+    Default: "Sample App"
+  VpcIp:
+    Description: "input your VPC IP Range."
+    Type: String
+    Default: 172.16.0.0/16
+  SubnetIp1:
+    Description: "input your Subnet_1 IP Range."
+    Type: String
+    Default: 172.16.0.0/24
+  SubnetIp2:
+    Description: "input your Subnet_2 IP Range."
+    Type: String
+    Default: 172.16.1.0/24
