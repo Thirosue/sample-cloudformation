@@ -102,3 +102,47 @@ Resources:
     Properties: 
       RouteTableId: !Ref RouteTable
       SubnetId: !Ref PublicSubnet2
+  PublicFireWall:
+    Type: AWS::EC2::SecurityGroup
+    DependsOn: VPC
+    Properties:
+      GroupDescription: Public FireWall
+      VpcId: !Ref VPC
+      SecurityGroupIngress: #InBound Rule
+      - IpProtocol: -1
+        FromPort: 0
+        ToPort: 0
+        CidrIp: !Ref VpcIp
+      - IpProtocol: -1
+        FromPort: 0
+        ToPort: 0
+        CidrIp: 126.208.134.29/32
+      SecurityGroupEgress: #OutBound Rule
+      - IpProtocol: -1
+        FromPort: 0
+        ToPort: 0
+        CidrIp: 0.0.0.0/0
+      Tags:
+        - 
+          Key: "Name"
+          Value: !Join [" ", [ !Ref ServiceName, "Public FireWall" ] ]
+  InternalFireWall:
+    Type: AWS::EC2::SecurityGroup
+    DependsOn: VPC
+    Properties:
+      GroupDescription: Internal FireWall
+      VpcId: !Ref VPC
+      SecurityGroupIngress: #InBound Rule
+      - IpProtocol: -1
+        FromPort: 0
+        ToPort: 0
+        CidrIp: !Ref VpcIp
+      SecurityGroupEgress: #OutBound Rule
+      - IpProtocol: -1
+        FromPort: 0
+        ToPort: 0
+        CidrIp: 0.0.0.0/0
+      Tags:
+        - 
+          Key: "Name"
+          Value: !Join [" ", [ !Ref ServiceName, "Internal FireWall" ] ]
