@@ -1,0 +1,167 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "General Configuration"
+        Parameters:
+          - ServiceName
+          - PublicDomain
+          - LocalDomain
+      -
+        Label:
+          default: "NetWork Configuration"
+        Parameters:
+          - VpcId
+          - SubnetId
+Parameters:
+  ServiceName:
+    Description: "input your ServiceName."
+    Type: String
+    Default: "sample-app"
+  PublicDomain:
+    Description: "input your Public Domain."
+    Type: String
+    Default: "sample.com"
+  LocalDomain:
+    Description: "input your Local Domain."
+    Type: String
+    Default: "sample.local"
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Select a VPC that allows instances access to the Internet.
+  SubnetId:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Select at two subnets in your selected VPC.
+Mappings:
+  Region2ELBAccountId:
+    us-east-1:
+      AccountId: '127311923021'
+    us-east-2:
+      AccountId: 033677994240
+    us-west-1:
+      AccountId: 027434742980
+    us-west-2:
+      AccountId: '797873946194'
+    ap-northeast-1:
+      AccountId: '582318560864'
+    ap-northeast-2:
+      AccountId: '600734575887'
+    ap-southeast-1:
+      AccountId: '114774131450'
+    ap-southeast-2:
+      AccountId: '783225319266'
+Resources:         
+# ------------------------------------------------------------#
+#  CloudWatchLog Group (Container Logs)
+# ------------------------------------------------------------#         
+  CloudwatchLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ['-', [ECSLogGroup, !Ref 'AWS::StackName']]
+      RetentionInDays: 14
+# ------------------------------------------------------------#
+#  Cloud Map (Service Discovery)
+# ------------------------------------------------------------#         
+  APIDNS:
+    Type: "AWS::ServiceDiscovery::PrivateDnsNamespace"
+    Properties:
+      Description: "API Container DNS Setting"
+      Vpc: !Ref VpcId
+      Name: !Sub "api.${LocalDomain}"
+  DBDNS:
+    Type: "AWS::ServiceDiscovery::PrivateDnsNamespace"
+    Properties:
+      Description: "API Container DB Setting"
+      Vpc: !Ref VpcId
+      Name: !Sub "db.${LocalDomain}"
+# ------------------------------------------------------------#
+#  ECS Cluster
+# ------------------------------------------------------------#         
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub "${ServiceName}-cluster"
+# ------------------------------------------------------------#
+#  ECS Task Definition
+# ------------------------------------------------------------#         
+  FrontTaskdefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ServiceName}-front"
+      RequiresCompatibilities:
+        - "EC2"
+        - "FARGATE"
+      ContainerDefinitions:
+      - Name: front
+        Image: mirrored1976/sample-vue-front
+        Cpu: '256'
+        Memory: '512'
+        Essential: 'true'
+        NetworkMode: 'awsvpc'
+        PortMappings:
+        - ContainerPort: 80
+        Environment:
+          - 
+            Name: "API_PORT"
+            Value: 18081
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref CloudwatchLogsGroup
+            awslogs-region: !Ref AWS::Region
+            awslogs-stream-prefix: front
+  APITaskdefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ServiceName}-api"
+      ContainerDefinitions:
+      - Name: api
+        Image: mirrored1976/sample-api
+        Cpu: '256'
+        Memory: '512'
+        Essential: 'true'
+        PortMappings:
+        - ContainerPort: 18081
+        Environment:
+          - 
+            Name: "SPRING_DATASOURCE_URL"
+            Value: !Sub "jdbc:mysql://localhost:3306/sample?useSSL=false&characterEncoding=UTF-8"
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref CloudwatchLogsGroup
+            awslogs-region: !Ref AWS::Region
+            awslogs-stream-prefix: api
+  DBTaskdefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ServiceName}-db"
+      ContainerDefinitions:
+      - Name: db
+        Image: mirrored1976/sample-db
+        Cpu: '256'
+        Memory: '512'
+        Essential: 'true'
+        PortMappings:
+        - ContainerPort: 3306
+        Environment:
+          - 
+            Name: "MYSQL_DATABASE"
+            Value: sample
+          - 
+            Name: "MYSQL_ROOT_USER"
+            Value: root
+          - 
+            Name: "MYSQL_ROOT_PASSWORD"
+            Value: passw0rd
+          - 
+            Name: "TZ"
+            Value: Japan
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref CloudwatchLogsGroup
+            awslogs-region: !Ref AWS::Region
+            awslogs-stream-prefix: db
