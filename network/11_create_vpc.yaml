@@ -133,6 +133,33 @@ Resources:
     DependsOn: VPC
     Properties:
       GroupDescription: Public FireWall
+      GroupName: "public-sg"
+      VpcId: !Ref VPC
+      SecurityGroupIngress: #InBound Rule
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 0.0.0.0/0
+      SecurityGroupEgress: #OutBound Rule
+      - IpProtocol: -1
+        FromPort: 0
+        ToPort: 0
+        CidrIp: 0.0.0.0/0
+      Tags:
+        - 
+          Key: "Name"
+          Value: !Sub "${ServiceName} Public FireWall"
+
+  ManagementFireWall:
+    Type: AWS::EC2::SecurityGroup
+    DependsOn: VPC
+    Properties:
+      GroupDescription: Management FireWall
+      GroupName: "management-sg"
       VpcId: !Ref VPC
       SecurityGroupIngress: #InBound Rule
       - IpProtocol: -1
@@ -147,13 +174,14 @@ Resources:
       Tags:
         - 
           Key: "Name"
-          Value: !Sub "${ServiceName} Public FireWall"
+          Value: !Sub "${ServiceName} Management FireWall"
 
   InternalFireWall:
     Type: AWS::EC2::SecurityGroup
     DependsOn: VPC
     Properties:
       GroupDescription: Internal FireWall
+      GroupName: "internal-sg"
       VpcId: !Ref VPC
       SecurityGroupIngress: #InBound Rule
       - IpProtocol: -1
