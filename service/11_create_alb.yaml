@@ -7,11 +7,23 @@ Metadata:
           default: "General Configuration"
         Parameters:
           - ServiceName
+      -
+        Label:
+          default: "NetWork Configuration"
+        Parameters:
+          - VpcId
+          - SubnetId
 Parameters:
   ServiceName:
     Description: "input your ServiceName."
     Type: String
     Default: "sample-app"
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Select a VPC that allows instances access to the Internet.
+  SubnetId:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Select at two subnets in your selected VPC.
 Mappings:
   Region2ELBAccountId:
     us-east-1:
@@ -30,7 +42,14 @@ Mappings:
       AccountId: '114774131450'
     ap-southeast-2:
       AccountId: '783225319266'
-Resources:
+Resources:         
+# ------------------------------------------------------------#
+#  ECS Cluster
+# ------------------------------------------------------------#         
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub "${ServiceName}-cluster"
 # ------------------------------------------------------------#
 #  S3 (ALB Log Bucket)
 # ------------------------------------------------------------#         
