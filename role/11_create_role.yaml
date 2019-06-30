@@ -1,9 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Resources:
 # ------------------------------------------------------------#
-#  ECS Task Role
-# ------------------------------------------------------------#         
-  ECSTaskRole: 
+#  ECS Role
+# ------------------------------------------------------------#
+  ECSRole:
     Type: "AWS::IAM::Role"
     Properties: 
       AssumeRolePolicyDocument: 
@@ -13,10 +13,10 @@ Resources:
             Effect: "Allow"
             Principal: 
               Service: 
-                - "ecs-tasks.amazonaws.com"
+                - "ecs.amazonaws.com"
             Action: 
               - "sts:AssumeRole"
-      Path: "/system/"
+      Path: /
 
   ECSTaskRolePolicies: 
     Type: "AWS::IAM::Policy"
@@ -30,8 +30,38 @@ Resources:
             Action: "*"
             Resource: "*"
       Roles: 
-        - !Ref ECSTaskRole
+        - !Ref ECSRole
+# ------------------------------------------------------------#
+#  ECS Task Role
+# ------------------------------------------------------------#
+  ECSTaskExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ecs-tasks.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: /
 
+  ECSTaskRolePolicies: 
+    Type: "AWS::IAM::Policy"
+    Properties: 
+      PolicyName: "ECSTaskRole"
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Action: "*"
+            Resource: "*"
+      Roles: 
+        - !Ref ECSTaskExecutionRole
 # ------------------------------------------------------------#
 #  AutoScale Role
 # ------------------------------------------------------------#         
@@ -48,7 +78,7 @@ Resources:
                 - "application-autoscaling.amazonaws.com"
             Action: 
               - "sts:AssumeRole"
-      Path: "/system/"
+      Path: /
       
   AutoScalingPolicies: 
     Type: "AWS::IAM::Policy"

@@ -138,10 +138,6 @@ Resources:
       - IpProtocol: -1
         FromPort: 0
         ToPort: 0
-        CidrIp: !Ref VpcIp
-      - IpProtocol: -1
-        FromPort: 0
-        ToPort: 0
         CidrIp: 126.208.134.29/32
       SecurityGroupEgress: #OutBound Rule
       - IpProtocol: -1
