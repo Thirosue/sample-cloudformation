@@ -90,16 +90,12 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Sub "${ServiceName}-front"
-      RequiresCompatibilities:
-        - "EC2"
-        - "FARGATE"
       ContainerDefinitions:
       - Name: front
         Image: mirrored1976/sample-vue-front
         Cpu: '256'
         Memory: '512'
         Essential: 'true'
-        NetworkMode: 'awsvpc'
         PortMappings:
         - ContainerPort: 80
         Environment:
