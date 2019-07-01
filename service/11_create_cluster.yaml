@@ -163,7 +163,7 @@ Resources:
 # ------------------------------------------------------------#
 #  Target Group
 # ------------------------------------------------------------#
-  TargetGroup:
+  FrontServiceTargetGroup:
     Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
     Properties:
       VpcId: !Ref VpcId
@@ -184,7 +184,7 @@ Resources:
 # ------------------------------------------------------------#
 #  Internet ALB
 # ------------------------------------------------------------#
-  InternetALB:
+  FrontServiceALB:
     Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
     Properties:
       Name: !Sub "${ServiceName}-loadbalancer"
@@ -194,10 +194,11 @@ Resources:
           Value: false
         - Key: "idle_timeout.timeout_seconds"
           Value: 60
-        - Key: "access_logs.s3.enabled"
-          Value: true
-        - Key: "access_logs.s3.bucket"
-          Value: !Sub "${ServiceName}-accesslog"
+        #### Enable Production  
+        #- Key: "access_logs.s3.enabled"
+        #  Value: true
+        #- Key: "access_logs.s3.bucket"
+        #  Value: !Sub "${ServiceName}-accesslog"
       SecurityGroups:
         -
           !Ref PublicSecurityGroupId
@@ -206,19 +207,39 @@ Resources:
         - Key: Name
           Value: !Sub "${ServiceName}-lb"
 
-  ALBListener:
+  FrontServiceListener:
     Type: "AWS::ElasticLoadBalancingV2::Listener"
     Properties:
       DefaultActions:
-        - TargetGroupArn: !Ref TargetGroup
+        - TargetGroupArn: !Ref FrontServiceTargetGroup
           Type: forward
-      LoadBalancerArn: !Ref InternetALB
+      LoadBalancerArn: !Ref FrontServiceALB
       Port: 80
       Protocol: HTTP
 
 # ------------------------------------------------------------#
 #  ECS Service
 # ------------------------------------------------------------#
+  FrontService:
+    Type: AWS::ECS::Service
+    DependsOn: FrontServiceListener
+    Properties:
+      Cluster: !Ref ECSCluster
+      DesiredCount: 1
+      LaunchType: FARGATE
+      LoadBalancers:
+        -
+          TargetGroupArn: !Ref FrontServiceTargetGroup
+          ContainerPort: 80
+          ContainerName: !Sub "front"
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref InternalSecurityGroupId
+          Subnets: !Ref SubnetId
+      ServiceName: !Sub "${ServiceName}-front-service"
+      TaskDefinition: !Ref FrontTaskdefinition
 
 ###############################################################
 #  API Service Settings
