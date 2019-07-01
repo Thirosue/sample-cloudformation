@@ -61,6 +61,10 @@ Mappings:
     ap-southeast-2:
       AccountId: '783225319266'
 Resources:         
+###############################################################
+#  Common Settings
+###############################################################
+
 # ------------------------------------------------------------#
 #  CloudWatchLog Group (Container Logs)
 # ------------------------------------------------------------#         
@@ -70,20 +74,25 @@ Resources:
       LogGroupName: !Join ['-', [ECSLogGroup, !Ref 'AWS::StackName']]
       RetentionInDays: 14
 # ------------------------------------------------------------#
-#  Cloud Map (Service Discovery)
+#  ECS Cluster
 # ------------------------------------------------------------#         
-  APIDNS:
-    Type: "AWS::ServiceDiscovery::PrivateDnsNamespace"
+  ECSCluster:
+    Type: AWS::ECS::Cluster
     Properties:
-      Description: "API Container DNS Setting"
-      Vpc: !Ref VpcId
-      Name: !Sub "api.${LocalDomain}"
-  DBDNS:
-    Type: "AWS::ServiceDiscovery::PrivateDnsNamespace"
+      ClusterName: !Sub "${ServiceName}-cluster"
+
+###############################################################
+#  Front Service Settings
+###############################################################
+
+# ------------------------------------------------------------#
+#  Repository Settings (ECR)
+# ------------------------------------------------------------#         
+  FrontContainerRepository:
+    Type: AWS::ECR::Repository
     Properties:
-      Description: "API Container DB Setting"
-      Vpc: !Ref VpcId
-      Name: !Sub "db.${LocalDomain}"
+      RepositoryName: !Sub ${ServiceName}-front
+
 # ------------------------------------------------------------#
 #  ECS Task Definition
 # ------------------------------------------------------------#         
@@ -115,76 +124,6 @@ Resources:
             awslogs-group: !Ref CloudwatchLogsGroup
             awslogs-region: !Ref AWS::Region
             awslogs-stream-prefix: front
-  APITaskdefinition:
-    Type: AWS::ECS::TaskDefinition
-    Properties:
-      Family: !Sub "${ServiceName}-api"
-      Cpu: '256'
-      Memory: '512'
-      NetworkMode: awsvpc
-      RequiresCompatibilities:
-        - FARGATE
-      ExecutionRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ServiceName}-ECSTaskExecutionRolePolicy"
-      ContainerDefinitions:
-      - Name: api
-        Image: mirrored1976/sample-api
-        PortMappings:
-        - ContainerPort: 18081
-        Environment:
-          - 
-            Name: "SPRING_DATASOURCE_URL"
-            Value: !Sub "jdbc:mysql://db.${LocalDomain}:3306/sample?useSSL=false&characterEncoding=UTF-8"
-        LogConfiguration:
-          LogDriver: awslogs
-          Options:
-            awslogs-group: !Ref CloudwatchLogsGroup
-            awslogs-region: !Ref AWS::Region
-            awslogs-stream-prefix: api
-  DBTaskdefinition:
-    Type: AWS::ECS::TaskDefinition
-    Properties:
-      Family: !Sub "${ServiceName}-db"
-      Cpu: '256'
-      Memory: '512'
-      NetworkMode: awsvpc
-      RequiresCompatibilities:
-        - FARGATE
-      ExecutionRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ServiceName}-ECSTaskExecutionRolePolicy"
-      ContainerDefinitions:
-      - Name: db
-        Image: mirrored1976/sample-db
-        PortMappings:
-        - ContainerPort: 3306
-        Environment:
-          - 
-            Name: "MYSQL_DATABASE"
-            Value: sample
-          - 
-            Name: "MYSQL_ROOT_USER"
-            Value: root
-          - 
-            Name: "MYSQL_ROOT_PASSWORD"
-            Value: passw0rd
-          - 
-            Name: "TZ"
-            Value: Japan
-        LogConfiguration:
-          LogDriver: awslogs
-          Options:
-            awslogs-group: !Ref CloudwatchLogsGroup
-            awslogs-region: !Ref AWS::Region
-            awslogs-stream-prefix: db
-# ------------------------------------------------------------#
-#  ECS Cluster
-# ------------------------------------------------------------#         
-  ECSCluster:
-    Type: AWS::ECS::Cluster
-    Properties:
-      ClusterName: !Sub "${ServiceName}-cluster"
-
-###############################################################
-#  Front Service Settings
-###############################################################
 
 # ------------------------------------------------------------#
 #  S3 (ALB Log Bucket)
@@ -276,3 +215,118 @@ Resources:
       LoadBalancerArn: !Ref InternetALB
       Port: 80
       Protocol: HTTP
+
+# ------------------------------------------------------------#
+#  ECS Service
+# ------------------------------------------------------------#
+
+###############################################################
+#  API Service Settings
+###############################################################
+
+# ------------------------------------------------------------#
+#  Repository Settings (ECR)
+# ------------------------------------------------------------#         
+  APIContainerRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub ${ServiceName}-api
+
+# ------------------------------------------------------------#
+#  Cloud Map (Service Discovery)
+# ------------------------------------------------------------#         
+  APIDNS:
+    Type: "AWS::ServiceDiscovery::PrivateDnsNamespace"
+    Properties:
+      Description: "API Container DNS Setting"
+      Vpc: !Ref VpcId
+      Name: !Sub "api.${LocalDomain}"
+
+# ------------------------------------------------------------#
+#  ECS Task Definition
+# ------------------------------------------------------------#         
+  APITaskdefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ServiceName}-api"
+      Cpu: '256'
+      Memory: '512'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ServiceName}-ECSTaskExecutionRolePolicy"
+      ContainerDefinitions:
+      - Name: api
+        Image: mirrored1976/sample-api
+        PortMappings:
+        - ContainerPort: 18081
+        Environment:
+          - 
+            Name: "SPRING_DATASOURCE_URL"
+            Value: !Sub "jdbc:mysql://db.${LocalDomain}:3306/sample?useSSL=false&characterEncoding=UTF-8"
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref CloudwatchLogsGroup
+            awslogs-region: !Ref AWS::Region
+            awslogs-stream-prefix: api
+
+###############################################################
+#  DB Service Settings
+###############################################################
+
+# ------------------------------------------------------------#
+#  Repository Settings (ECR)
+# ------------------------------------------------------------#         
+  APIContainerRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub ${ServiceName}-db
+
+# ------------------------------------------------------------#
+#  Cloud Map (Service Discovery)
+# ------------------------------------------------------------#         
+  DBDNS:
+    Type: "AWS::ServiceDiscovery::PrivateDnsNamespace"
+    Properties:
+      Description: "API Container DB Setting"
+      Vpc: !Ref VpcId
+      Name: !Sub "db.${LocalDomain}"
+
+# ------------------------------------------------------------#
+#  ECS Task Definition
+# ------------------------------------------------------------#         
+  DBTaskdefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ServiceName}-db"
+      Cpu: '256'
+      Memory: '512'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ServiceName}-ECSTaskExecutionRolePolicy"
+      ContainerDefinitions:
+      - Name: db
+        Image: mirrored1976/sample-db
+        PortMappings:
+        - ContainerPort: 3306
+        Environment:
+          - 
+            Name: "MYSQL_DATABASE"
+            Value: sample
+          - 
+            Name: "MYSQL_ROOT_USER"
+            Value: root
+          - 
+            Name: "MYSQL_ROOT_PASSWORD"
+            Value: passw0rd
+          - 
+            Name: "TZ"
+            Value: Japan
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref CloudwatchLogsGroup
+            awslogs-region: !Ref AWS::Region
+            awslogs-stream-prefix: db
