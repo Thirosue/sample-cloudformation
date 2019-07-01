@@ -278,7 +278,7 @@ Resources:
 # ------------------------------------------------------------#
 #  Repository Settings (ECR)
 # ------------------------------------------------------------#         
-  APIContainerRepository:
+  DBContainerRepository:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: !Sub ${ServiceName}-db
