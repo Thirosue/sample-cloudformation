@@ -533,6 +533,110 @@ Resources:
       ServiceRegistries: 
         - RegistryArn: !GetAtt APIDNSServive.Arn
 
+# ------------------------------------------------------------#
+#  Auto Scaling Service
+# ------------------------------------------------------------# 
+  APIServiceScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MinCapacity: !Ref APITaskMinContainerCount
+      MaxCapacity: !Ref APITaskMaxContainerCount
+      ResourceId: !Sub
+        - service/${EcsClusterName}/${EcsDefaultServiceName}
+        - EcsClusterName: !Ref ECSCluster
+          EcsDefaultServiceName: !Sub "${ServiceName}-api-service"
+      RoleARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ServiceName}-AutoScaleRolePolicy"
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+    DependsOn:
+      - APIService
+
+  APIServiceScaleOutPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub "${ServiceName}-api-service-ScaleOutPolicy"
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref APIServiceScalingTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: ChangeInCapacity
+        Cooldown: 60
+        MetricAggregationType: Average
+        StepAdjustments:
+          - ScalingAdjustment: 1
+            MetricIntervalLowerBound: 0
+    DependsOn:
+      - APIServiceScalingTarget
+ 
+  APIServiceScaleInPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub "${ServiceName}-api-service-ScaleInPolicy"
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref APIServiceScalingTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: ChangeInCapacity
+        Cooldown: 60
+        MetricAggregationType: Average
+        StepAdjustments:
+          - ScalingAdjustment: -1
+            MetricIntervalUpperBound: 0
+    DependsOn:
+      - APIServiceScalingTarget
+
+  APIServiceScaleOutAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ServiceName}-api-service-ScaleOutAlarm"
+      AlarmDescription: Alarm to add capacity if CPU is high
+      # TODO Chatwork
+      #AlarmActions:
+      #  - Ref: "logical name of an AWS::SNS::Topic resource"
+      EvaluationPeriods: !Ref APIServiceScaleEvaluationPeriods
+      Statistic: Average
+      TreatMissingData: notBreaching
+      Threshold: !Ref APIServiceCpuScaleOutThreshold
+      Period: 60
+      AlarmActions:
+        - !Ref APIServiceScaleOutPolicy
+      Namespace: AWS/ECS
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref ECSCluster
+        - Name: ServiceName
+          Value: !Sub "${ServiceName}-api-service"
+      ComparisonOperator: GreaterThanThreshold
+      MetricName: CPUUtilization
+    DependsOn:
+      - APIService
+      - APIServiceScaleOutPolicy
+
+  APIServiceScaleInAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ServiceName}-api-service-ScaleInAlarm"
+      AlarmDescription: Alarm to reduce capacity if container CPU is low
+      # TODO Chatwork
+      #AlarmActions:
+      #  - Ref: "logical name of an AWS::SNS::Topic resource"
+      EvaluationPeriods: !Ref APIServiceScaleEvaluationPeriods
+      Statistic: Average
+      TreatMissingData: notBreaching
+      Threshold: !Ref APIServiceCpuScaleInThreshold
+      Period: 300
+      AlarmActions:
+        - !Ref APIServiceScaleInPolicy
+      Namespace: AWS/ECS
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref ECSCluster
+        - Name: ServiceName
+          Value: !Sub "${ServiceName}-api-service"
+      ComparisonOperator: LessThanThreshold
+      MetricName: CPUUtilization
+    DependsOn:
+      - APIService
+      - APIServiceScaleInPolicy
+
 ###############################################################
 #  DB Service Settings
 ###############################################################
