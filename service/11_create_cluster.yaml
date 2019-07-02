@@ -17,31 +17,85 @@ Metadata:
           - SubnetId
           - PublicSecurityGroupId
           - InternalSecurityGroupId
+      -
+        Label:
+          default: "Front AutoScale Configuration"
+        Parameters:
+          - FrontServiceScaleEvaluationPeriods
+          - FrontServiceCpuScaleOutThreshold
+          - FrontServiceCpuScaleInThreshold
+          - FrontTaskMinContainerCount
+          - FrontTaskMaxContainerCount
 Parameters:
   ServiceName:
     Description: "input your ServiceName."
     Type: String
     Default: "sample-app"
+
   PublicDomain:
     Description: "input your Public Domain."
     Type: String
     Default: "sample.com"
+
   LocalDomain:
     Description: "input your Local Domain."
     Type: String
     Default: "sample.local"
+
+# Network
   VpcId:
     Type: AWS::EC2::VPC::Id
     Description: Select a VPC that allows instances access to the Internet.
+
   SubnetId:
     Type: List<AWS::EC2::Subnet::Id>
     Description: Select at two subnets in your selected VPC.
+
   PublicSecurityGroupId:
     Type: AWS::EC2::SecurityGroup::Id
     Description: Select a Service Secutiry Group.
+
   InternalSecurityGroupId:
     Type: AWS::EC2::SecurityGroup::Id
     Description: Select a Internal Secutiry Group.
+
+# Front Scaling params
+  FrontServiceScaleEvaluationPeriods:
+    Description: The number of periods over which data is compared to the specified threshold
+    Type: Number
+    Default: 2
+    MinValue: 2
+ 
+  FrontServiceCpuScaleOutThreshold:
+    Type: Number
+    Description: Average CPU value to trigger auto scaling out
+    Default: 50
+    MinValue: 0
+    MaxValue: 100
+    ConstraintDescription: Value must be between 0 and 100
+ 
+  FrontServiceCpuScaleInThreshold:
+    Type: Number
+    Description: Average CPU value to trigger auto scaling in
+    Default: 25
+    MinValue: 0
+    MaxValue: 100
+    ConstraintDescription: Value must be between 0 and 100
+ 
+  FrontTaskMinContainerCount:
+    Type: Number
+    Description: Minimum number of containers to run for the service
+    Default: 1
+    MinValue: 1
+    ConstraintDescription: Value must be at least one
+ 
+  FrontTaskMaxContainerCount:
+    Type: Number
+    Description: Maximum number of containers to run for the service when auto scaling out
+    Default: 2
+    MinValue: 1
+    ConstraintDescription: Value must be at least one
+
 Mappings:
   Region2ELBAccountId:
     us-east-1:
@@ -222,7 +276,6 @@ Resources:
 # ------------------------------------------------------------#
   FrontService:
     Type: AWS::ECS::Service
-    DependsOn: FrontServiceListener
     Properties:
       Cluster: !Ref ECSCluster
       DesiredCount: 1
@@ -240,6 +293,58 @@ Resources:
           Subnets: !Ref SubnetId
       ServiceName: !Sub "${ServiceName}-front-service"
       TaskDefinition: !Ref FrontTaskdefinition
+    DependsOn: 
+      - FrontServiceListener
+
+# ------------------------------------------------------------#
+#  Auto Scaling Service
+# ------------------------------------------------------------# 
+  FrontServiceScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MinCapacity: !Ref FrontTaskMinContainerCount
+      MaxCapacity: !Ref FrontTaskMaxContainerCount
+      ResourceId: !Sub
+        - service/${EcsClusterName}/${EcsDefaultServiceName}
+        - EcsClusterName: !Ref ECSCluster
+          EcsDefaultServiceName: !Sub "${ServiceName}-front-service"
+      RoleARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ServiceName}-AutoScaleRolePolicy"
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+    DependsOn:
+      - FrontService
+
+  FrontServiceScaleOutPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub "${ServiceName}-front-service-ScaleOutPolicy"
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref FrontServiceScalingTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: ChangeInCapacity
+        Cooldown: 60
+        MetricAggregationType: Average
+        StepAdjustments:
+          - ScalingAdjustment: 1
+            MetricIntervalLowerBound: 0
+    DependsOn:
+      - FrontServiceScalingTarget
+ 
+  FrontServiceScaleInPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub "${ServiceName}-front-service-ScaleInPolicy"
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref FrontServiceScalingTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: ChangeInCapacity
+        Cooldown: 60
+        MetricAggregationType: Average
+        StepAdjustments:
+          - ScalingAdjustment: -1
+            MetricIntervalUpperBound: 0
+    DependsOn:
+      - FrontServiceScalingTarget
 
 ###############################################################
 #  API Service Settings
