@@ -659,6 +659,22 @@ Resources:
       Vpc: !Ref VpcId
       Name: !Sub "db.${LocalDomain}"
 
+  DBDNSServive:
+    Type: "AWS::ServiceDiscovery::Service"
+    Properties:
+      Name: !Sub "${ServiceName}-db-dns"
+      NamespaceId: !Ref DBDNS
+      Description: DB Service Service Discovery Settings 
+      DnsConfig: 
+        DnsRecords: 
+          - 
+            Type: A
+            TTL: 60
+        NamespaceId: !Ref DBDNS
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig: 
+        FailureThreshold: 3
+
 # ------------------------------------------------------------#
 #  ECS Task Definition
 # ------------------------------------------------------------#         
@@ -696,3 +712,23 @@ Resources:
             awslogs-group: !Ref CloudwatchLogsGroup
             awslogs-region: !Ref AWS::Region
             awslogs-stream-prefix: db
+
+# ------------------------------------------------------------#
+#  ECS Service
+# ------------------------------------------------------------#
+  DBService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref InternalSecurityGroupId
+          Subnets: !Ref SubnetId
+      ServiceName: !Sub "${ServiceName}-db-service"
+      TaskDefinition: !Ref DBTaskdefinition
+      ServiceRegistries: 
+        - RegistryArn: !GetAtt DBDNSServive.Arn
