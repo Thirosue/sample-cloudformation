@@ -26,6 +26,15 @@ Metadata:
           - FrontServiceCpuScaleInThreshold
           - FrontTaskMinContainerCount
           - FrontTaskMaxContainerCount
+      -
+        Label:
+          default: "API AutoScale Configuration"
+        Parameters:
+          - APIServiceScaleEvaluationPeriods
+          - APIServiceCpuScaleOutThreshold
+          - APIServiceCpuScaleInThreshold
+          - APITaskMinContainerCount
+          - APITaskMaxContainerCount
 Parameters:
   ServiceName:
     Description: "input your ServiceName."
@@ -93,6 +102,43 @@ Parameters:
     Type: Number
     Description: Maximum number of containers to run for the service when auto scaling out
     Default: 2
+    MinValue: 1
+    ConstraintDescription: Value must be at least one
+
+# API Scaling params
+  APIServiceScaleEvaluationPeriods:
+    Description: The number of periods over which data is compared to the specified threshold
+    Type: Number
+    Default: 2
+    MinValue: 2
+ 
+  APIServiceCpuScaleOutThreshold:
+    Type: Number
+    Description: Average CPU value to trigger auto scaling out
+    Default: 50
+    MinValue: 0
+    MaxValue: 100
+    ConstraintDescription: Value must be between 0 and 100
+ 
+  APIServiceCpuScaleInThreshold:
+    Type: Number
+    Description: Average CPU value to trigger auto scaling in
+    Default: 25
+    MinValue: 0
+    MaxValue: 100
+    ConstraintDescription: Value must be between 0 and 100
+ 
+  APITaskMinContainerCount:
+    Type: Number
+    Description: Minimum number of containers to run for the service
+    Default: 1
+    MinValue: 1
+    ConstraintDescription: Value must be at least one
+ 
+  APITaskMaxContainerCount:
+    Type: Number
+    Description: Maximum number of containers to run for the service when auto scaling out
+    Default: 3
     MinValue: 1
     ConstraintDescription: Value must be at least one
 
@@ -350,11 +396,14 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: !Sub "${ServiceName}-front-service-ScaleOutAlarm"
+      AlarmDescription: Alarm to add capacity if CPU is high
+      # TODO Chatwork
+      #AlarmActions:
+      #  - Ref: "logical name of an AWS::SNS::Topic resource"
       EvaluationPeriods: !Ref FrontServiceScaleEvaluationPeriods
       Statistic: Average
       TreatMissingData: notBreaching
       Threshold: !Ref FrontServiceCpuScaleOutThreshold
-      AlarmDescription: Alarm to add capacity if CPU is high
       Period: 60
       AlarmActions:
         - !Ref FrontServiceScaleOutPolicy
@@ -374,11 +423,14 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: !Sub "${ServiceName}-front-service-ScaleInAlarm"
+      AlarmDescription: Alarm to reduce capacity if container CPU is low
+      # TODO Chatwork
+      #AlarmActions:
+      #  - Ref: "logical name of an AWS::SNS::Topic resource"
       EvaluationPeriods: !Ref FrontServiceScaleEvaluationPeriods
       Statistic: Average
       TreatMissingData: notBreaching
       Threshold: !Ref FrontServiceCpuScaleInThreshold
-      AlarmDescription: Alarm to reduce capacity if container CPU is low
       Period: 300
       AlarmActions:
         - !Ref FrontServiceScaleInPolicy
@@ -444,6 +496,24 @@ Resources:
             awslogs-group: !Ref CloudwatchLogsGroup
             awslogs-region: !Ref AWS::Region
             awslogs-stream-prefix: api
+
+# ------------------------------------------------------------#
+#  ECS Service
+# ------------------------------------------------------------#
+  APIService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref InternalSecurityGroupId
+          Subnets: !Ref SubnetId
+      ServiceName: !Sub "${ServiceName}-api-service"
+      TaskDefinition: !Ref APITaskdefinition
 
 ###############################################################
 #  DB Service Settings
