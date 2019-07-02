@@ -468,6 +468,23 @@ Resources:
       Vpc: !Ref VpcId
       Name: !Sub "api.${LocalDomain}"
 
+  APIDNSServive:
+    Type: "AWS::ServiceDiscovery::Service"
+    Properties:
+      Name: !Sub "${ServiceName}-api-dns"
+      NamespaceId: !Ref APIDNS
+      Description: API Service Service Discovery Settings 
+      DnsConfig: 
+        DnsRecords: 
+          - 
+            Type: A
+            TTL: 60
+        NamespaceId: !Ref APIDNS
+        RoutingPolicy: MULTIVALUE
+      # TODO Check Health Check
+      HealthCheckCustomConfig: 
+        FailureThreshold: 3
+
 # ------------------------------------------------------------#
 #  ECS Task Definition
 # ------------------------------------------------------------#         
