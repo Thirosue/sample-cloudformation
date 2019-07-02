@@ -138,7 +138,7 @@ Parameters:
   APITaskMaxContainerCount:
     Type: Number
     Description: Maximum number of containers to run for the service when auto scaling out
-    Default: 3
+    Default: 1
     MinValue: 1
     ConstraintDescription: Value must be at least one
 
@@ -173,6 +173,17 @@ Resources:
     Properties:
       LogGroupName: !Join ['-', [ECSLogGroup, !Ref 'AWS::StackName']]
       RetentionInDays: 14
+
+# ------------------------------------------------------------#
+#  Local DNS NameSpace (Cloud Map)
+# ------------------------------------------------------------#         
+  LocalDNS:
+    Type: "AWS::ServiceDiscovery::PrivateDnsNamespace"
+    Properties:
+      Description: "API Container DB Setting"
+      Vpc: !Ref VpcId
+      Name: !Ref LocalDomain
+
 # ------------------------------------------------------------#
 #  ECS Cluster
 # ------------------------------------------------------------#         
@@ -459,27 +470,19 @@ Resources:
       RepositoryName: !Sub ${ServiceName}-api
 
 # ------------------------------------------------------------#
-#  Cloud Map (Service Discovery)
+#  API Sevice Discovery (Cloud Map)
 # ------------------------------------------------------------#         
-  APIDNS:
-    Type: "AWS::ServiceDiscovery::PrivateDnsNamespace"
-    Properties:
-      Description: "API Container DNS Setting"
-      Vpc: !Ref VpcId
-      Name: !Sub "api.${LocalDomain}"
-
   APIDNSServive:
     Type: "AWS::ServiceDiscovery::Service"
     Properties:
-      Name: !Sub "${ServiceName}-api-dns"
-      NamespaceId: !Ref APIDNS
+      Name: api
       Description: API Service Service Discovery Settings 
       DnsConfig: 
         DnsRecords: 
           - 
             Type: A
             TTL: 60
-        NamespaceId: !Ref APIDNS
+        NamespaceId: !Ref LocalDNS
         RoutingPolicy: MULTIVALUE
       HealthCheckCustomConfig: 
         FailureThreshold: 3
@@ -650,27 +653,19 @@ Resources:
       RepositoryName: !Sub ${ServiceName}-db
 
 # ------------------------------------------------------------#
-#  Cloud Map (Service Discovery)
+#  DB Sevice Discovery (Cloud Map)
 # ------------------------------------------------------------#         
-  DBDNS:
-    Type: "AWS::ServiceDiscovery::PrivateDnsNamespace"
-    Properties:
-      Description: "API Container DB Setting"
-      Vpc: !Ref VpcId
-      Name: !Sub "db.${LocalDomain}"
-
   DBDNSServive:
     Type: "AWS::ServiceDiscovery::Service"
     Properties:
-      Name: !Sub "${ServiceName}-db-dns"
-      NamespaceId: !Ref DBDNS
+      Name: db
       Description: DB Service Service Discovery Settings 
       DnsConfig: 
         DnsRecords: 
           - 
             Type: A
             TTL: 60
-        NamespaceId: !Ref DBDNS
+        NamespaceId: !Ref LocalDNS
         RoutingPolicy: MULTIVALUE
       HealthCheckCustomConfig: 
         FailureThreshold: 3
