@@ -346,6 +346,54 @@ Resources:
     DependsOn:
       - FrontServiceScalingTarget
 
+  FrontServiceScaleOutAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ServiceName}-front-service-ScaleOutAlarm"
+      EvaluationPeriods: !Ref FrontServiceScaleEvaluationPeriods
+      Statistic: Average
+      TreatMissingData: notBreaching
+      Threshold: !Ref FrontServiceCpuScaleOutThreshold
+      AlarmDescription: Alarm to add capacity if CPU is high
+      Period: 60
+      AlarmActions:
+        - !Ref FrontServiceScaleOutPolicy
+      Namespace: AWS/ECS
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref ECSCluster
+        - Name: ServiceName
+          Value: !Sub "${ServiceName}-front-service"
+      ComparisonOperator: GreaterThanThreshold
+      MetricName: CPUUtilization
+    DependsOn:
+      - FrontService
+      - FrontServiceScaleOutPolicy
+
+  FrontServiceScaleInAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ServiceName}-front-service-ScaleInAlarm"
+      EvaluationPeriods: !Ref FrontServiceScaleEvaluationPeriods
+      Statistic: Average
+      TreatMissingData: notBreaching
+      Threshold: !Ref FrontServiceCpuScaleInThreshold
+      AlarmDescription: Alarm to reduce capacity if container CPU is low
+      Period: 300
+      AlarmActions:
+        - !Ref FrontServiceScaleInPolicy
+      Namespace: AWS/ECS
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref ECSCluster
+        - Name: ServiceName
+          Value: !Sub "${ServiceName}-front-service"
+      ComparisonOperator: LessThanThreshold
+      MetricName: CPUUtilization
+    DependsOn:
+      - FrontService
+      - FrontServiceScaleInPolicy
+
 ###############################################################
 #  API Service Settings
 ###############################################################
