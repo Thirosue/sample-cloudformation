@@ -115,7 +115,7 @@ Parameters:
   APIServiceCpuScaleOutThreshold:
     Type: Number
     Description: Average CPU value to trigger auto scaling out
-    Default: 50
+    Default: 75
     MinValue: 0
     MaxValue: 100
     ConstraintDescription: Value must be between 0 and 100
@@ -166,21 +166,12 @@ Resources:
 ###############################################################
 
 # ------------------------------------------------------------#
-#  CloudWatchLog Group (Container Logs)
-# ------------------------------------------------------------#         
-  CloudwatchLogsGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Join ['-', [ECSLogGroup, !Ref 'AWS::StackName']]
-      RetentionInDays: 14
-
-# ------------------------------------------------------------#
 #  Local DNS NameSpace (Cloud Map)
 # ------------------------------------------------------------#         
   LocalDNS:
     Type: "AWS::ServiceDiscovery::PrivateDnsNamespace"
     Properties:
-      Description: "API Container DB Setting"
+      Description: "Local DNS NameSpace"
       Vpc: !Ref VpcId
       Name: !Ref LocalDomain
 
@@ -205,6 +196,15 @@ Resources:
       RepositoryName: !Sub ${ServiceName}-front
 
 # ------------------------------------------------------------#
+#  CloudWatchLog Group (Container Logs)
+# ------------------------------------------------------------#         
+  FrontLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: '/var/log/nginx'
+      RetentionInDays: 14
+
+# ------------------------------------------------------------#
 #  ECS Task Definition
 # ------------------------------------------------------------#         
   FrontTaskdefinition:
@@ -212,7 +212,7 @@ Resources:
     Properties:
       Family: !Sub "${ServiceName}-front"
       Cpu: '256'
-      Memory: '512'
+      Memory: '0.5GB'
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
@@ -236,7 +236,7 @@ Resources:
         LogConfiguration:
           LogDriver: awslogs
           Options:
-            awslogs-group: !Ref CloudwatchLogsGroup
+            awslogs-group: !Ref FrontLogsGroup
             awslogs-region: !Ref AWS::Region
             awslogs-stream-prefix: front
 
@@ -474,6 +474,15 @@ Resources:
       RepositoryName: !Sub ${ServiceName}-api
 
 # ------------------------------------------------------------#
+#  CloudWatchLog Group (Container Logs)
+# ------------------------------------------------------------#         
+  APILogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: '/var/log/api'
+      RetentionInDays: 14
+
+# ------------------------------------------------------------#
 #  API Sevice Discovery (Cloud Map)
 # ------------------------------------------------------------#         
   APIDNSServive:
@@ -489,7 +498,7 @@ Resources:
         NamespaceId: !Ref LocalDNS
         RoutingPolicy: MULTIVALUE
       HealthCheckCustomConfig: 
-        FailureThreshold: 3
+        FailureThreshold: 1
 
 # ------------------------------------------------------------#
 #  ECS Task Definition
@@ -498,8 +507,8 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Sub "${ServiceName}-api"
-      Cpu: '256'
-      Memory: '512'
+      Cpu: '1024'
+      Memory: '2.0GB'
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
@@ -516,7 +525,7 @@ Resources:
         LogConfiguration:
           LogDriver: awslogs
           Options:
-            awslogs-group: !Ref CloudwatchLogsGroup
+            awslogs-group: !Ref APILogsGroup
             awslogs-region: !Ref AWS::Region
             awslogs-stream-prefix: api
 
@@ -657,6 +666,15 @@ Resources:
       RepositoryName: !Sub ${ServiceName}-db
 
 # ------------------------------------------------------------#
+#  CloudWatchLog Group (Container Logs)
+# ------------------------------------------------------------#         
+  DBLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: '/var/log/mysql'
+      RetentionInDays: 14
+
+# ------------------------------------------------------------#
 #  DB Sevice Discovery (Cloud Map)
 # ------------------------------------------------------------#         
   DBDNSServive:
@@ -672,7 +690,7 @@ Resources:
         NamespaceId: !Ref LocalDNS
         RoutingPolicy: MULTIVALUE
       HealthCheckCustomConfig: 
-        FailureThreshold: 3
+        FailureThreshold: 1
 
 # ------------------------------------------------------------#
 #  ECS Task Definition
@@ -681,8 +699,8 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Sub "${ServiceName}-db"
-      Cpu: '256'
-      Memory: '512'
+      Cpu: '512'
+      Memory: '1.0GB'
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
@@ -708,7 +726,7 @@ Resources:
         LogConfiguration:
           LogDriver: awslogs
           Options:
-            awslogs-group: !Ref CloudwatchLogsGroup
+            awslogs-group: !Ref DBLogsGroup
             awslogs-region: !Ref AWS::Region
             awslogs-stream-prefix: db
 
