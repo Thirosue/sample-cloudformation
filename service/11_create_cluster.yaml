@@ -481,7 +481,6 @@ Resources:
             TTL: 60
         NamespaceId: !Ref APIDNS
         RoutingPolicy: MULTIVALUE
-      # TODO Check Health Check
       HealthCheckCustomConfig: 
         FailureThreshold: 3
 
@@ -531,6 +530,8 @@ Resources:
           Subnets: !Ref SubnetId
       ServiceName: !Sub "${ServiceName}-api-service"
       TaskDefinition: !Ref APITaskdefinition
+      ServiceRegistries: 
+        - RegistryArn: !GetAtt APIDNSServive.Arn
 
 ###############################################################
 #  DB Service Settings
