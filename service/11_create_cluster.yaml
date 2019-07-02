@@ -485,7 +485,7 @@ Resources:
         DnsRecords: 
           - 
             Type: A
-            TTL: 60
+            TTL: 10
         NamespaceId: !Ref LocalDNS
         RoutingPolicy: MULTIVALUE
       HealthCheckCustomConfig: 
@@ -668,7 +668,7 @@ Resources:
         DnsRecords: 
           - 
             Type: A
-            TTL: 60
+            TTL: 10
         NamespaceId: !Ref LocalDNS
         RoutingPolicy: MULTIVALUE
       HealthCheckCustomConfig: 
