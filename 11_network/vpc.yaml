@@ -42,6 +42,7 @@ Resources:
     Properties:
       CidrBlock: !Ref VpcIp
       EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
       Tags:
         - 
           Key: "Name"
